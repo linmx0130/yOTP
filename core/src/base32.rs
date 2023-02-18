@@ -1,12 +1,11 @@
 /// Implementation of RFC 4648 Base 32 encoding/decoding
 
-use bytes::{Bytes, BytesMut, Buf, BufMut};
 
-pub fn decode(value: &str) -> Option<BytesMut> {
+pub fn decode(value: &str) -> Option<Vec<u8>> {
     let values = value
                       .chars()
                       .map( |x| x.to_ascii_uppercase());
-    let mut buf = BytesMut::with_capacity(0);
+    let mut buf = Vec::new();
     buf.reserve(5 * value.len() / 8);
     let mut next = 0u8;
     let mut i = 0u8;
@@ -34,31 +33,31 @@ pub fn decode(value: &str) -> Option<BytesMut> {
                     }
                     3 => {
                         next = next | v;
-                        buf.put_u8(next);
+                        buf.push(next);
                         next = 0;
                         0
                     }
                     4 => {
                         next = next | (v >> 1);
-                        buf.put_u8(next);
+                        buf.push(next);
                         next = v << 7;
                         1
                     }
                     5 => {
                         next = next | (v >> 2);
-                        buf.put_u8(next);
+                        buf.push(next);
                         next = v << 6;
                         2
                     }
                     6 => {
                         next = next | (v >> 3);
-                        buf.put_u8(next);
+                        buf.push(next);
                         next = v << 5;
                         3
                     }
                     7 => {
                         next = next | (v >> 4);
-                        buf.put_u8(next);
+                        buf.push(next);
                         next = v << 4;
                         4
                     }

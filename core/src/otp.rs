@@ -1,7 +1,7 @@
 use crypto::{hmac::Hmac, sha1::Sha1, mac::Mac};
 
 pub fn hotp(key: &[u8], c: u64) -> String {
-    let mut digest = Sha1::new();
+    let digest = Sha1::new();
     let mut hmac = Hmac::new(digest, key);
     hmac.input(&big_endian_u64(c));
     let hash = hmac.result();

@@ -1,3 +1,5 @@
 extern crate crypto;
-mod base32;
+pub mod base32;
 mod otp;
+
+pub use otp::hotp;
