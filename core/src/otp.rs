@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::time::{Duration, SystemTime};
+
 use crypto::{hmac::Hmac, sha1::Sha1, mac::Mac};
 
 /// Implementation of HMAC-based One-Time Password as it is described
@@ -45,6 +47,16 @@ fn extract31(hash: &[u8], offset: usize) -> u32 {
         value = value | ((hash[offset + i] as u32) << pos_shift);
     }
     value  & 0x7FFFFFFF
+}
+
+/// Implementation of TOPT described in RFC 6238.
+/// 
+/// * `t0` is the start time in seconds since UNIX epoch (default as 0).
+/// * `interval` is the interval time in seconds (default is 30).
+pub fn totp(key: &[u8], t0:u64, interval: u64) -> String {
+    let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+    let c = (t - t0) / interval;
+    hotp(key, c)
 }
 
 fn big_endian_u64(v: u64)-> [u8;8] {

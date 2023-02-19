@@ -19,3 +19,4 @@ pub mod base32;
 mod otp;
 
 pub use otp::hotp;
+pub use otp::totp;
