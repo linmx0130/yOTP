@@ -59,6 +59,8 @@ fn big_endian_u64(v: u64)-> [u8;8] {
 
 
 mod test {
+    use crate::base32;
+
     use super::{big_endian_u64, extract31, hotp};
 
     #[test]
@@ -89,5 +91,14 @@ mod test {
         let c = 19260817;
         let code = hotp(&key, c);
         assert_eq!(code, "649433");
+    }
+
+    #[test]
+    fn test_hotp_google_auth() {
+        // This test case is from Google Authenticator Android unit test.
+        // See more in https://github.com/google/google-authenticator-android/blob/master/javatests/com/google/android/apps/authenticator/otp/PasscodeGeneratorTest.java
+        let key = base32::decode("7777777777777777").unwrap();
+        assert_eq!(hotp(&key, 0), "724477");
+        assert_eq!(hotp(&key, 123456789123456789), "815107");
     }
 }
