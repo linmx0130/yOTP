@@ -19,19 +19,32 @@ use std::time::{Duration, SystemTime};
 use crypto::{hmac::Hmac, sha1::Sha1, mac::Mac};
 
 /// Implementation of HMAC-based One-Time Password as it is described
-/// in RFC 4226. 
-pub fn hotp(key: &[u8], c: u64) -> String {
+/// in RFC 4226. It utilizes rust-crypto crate.
+///
+/// Parameters:
+/// * `key`: the "key" for generating the OTP.
+/// * `c`: the "counter" for generating the OTP.
+/// * `digit_len`: the length of generated OTP. It should be 6, 7 or 8.
+pub fn hotp(key: &[u8], c: u64, digit_len: usize) -> String {
+    if digit_len < 6 || digit_len > 8 {
+        panic!("HMAC-based OTP length should be 6 to 8 digits, but got {}.", digit_len);
+    }
     let digest = Sha1::new();
+    
+    // start the HMAC digest with the key
     let mut hmac = Hmac::new(digest, key);
+    // and then feed the counter to the HMAC digest
     hmac.input(&big_endian_u64(c));
+
+    // get the HMAC digest result and truncate it to a 31-bit string
     let hash = hmac.result();
     let length = hash.code().len();
     let offset = hash.code()[length-1] & 0xF;   
     let mut hotp_num= extract31(hash.code(), offset as usize);
-    println!("{}", hotp_num);
 
+    // keep 6 digits to get the HOTP value
     let mut hotp: Vec<u8> = Vec::new();
-    for _i in 0..6 {
+    for _i in 0..digit_len {
         let c = '0' as u8 + (hotp_num % 10) as u8;
         hotp_num = hotp_num / 10;
         hotp.push(c);
@@ -56,7 +69,7 @@ fn extract31(hash: &[u8], offset: usize) -> u32 {
 pub fn totp(key: &[u8], t0:u64, interval: u64) -> String {
     let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
     let c = (t - t0) / interval;
-    hotp(key, c)
+    hotp(key, c, 6)
 }
 
 fn big_endian_u64(v: u64)-> [u8;8] {
@@ -101,8 +114,20 @@ mod test {
     fn test_hotp() {
         let key = big_endian_u64(0xdeadbeef12345678);
         let c = 19260817;
-        let code = hotp(&key, c);
+        let code = hotp(&key, c, 6);
         assert_eq!(code, "649433");
+        let code = hotp(&key, c, 7);
+        assert_eq!(code, "6649433");
+        let code = hotp(&key, c, 8);
+        assert_eq!(code, "66649433");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_hotp_wrong_digit_len() {
+        let key = big_endian_u64(0xdeadbeef12345678);
+        let c = 19260817;
+        let code = hotp(&key, c, 5);
     }
 
     #[test]
@@ -110,7 +135,7 @@ mod test {
         // This test case is from Google Authenticator Android unit test.
         // See more in https://github.com/google/google-authenticator-android/blob/master/javatests/com/google/android/apps/authenticator/otp/PasscodeGeneratorTest.java
         let key = base32::decode("7777777777777777").unwrap();
-        assert_eq!(hotp(&key, 0), "724477");
-        assert_eq!(hotp(&key, 123456789123456789), "815107");
+        assert_eq!(hotp(&key, 0, 6), "724477");
+        assert_eq!(hotp(&key, 123456789123456789, 6), "815107");
     }
 }
